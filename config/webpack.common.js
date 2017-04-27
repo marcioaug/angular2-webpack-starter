@@ -6,45 +6,76 @@ var webpack = require('webpack'),
 
 module.exports = {
     entry: {
-        'polyfills': './src/polyfills.ts',
-        'vendor': './src/vendor.ts',
-        'app': './src/main.ts'
+        'js/polyfills': './src/polyfills.ts',
+        'js/vendor': './src/vendor.ts',
+        'js/app': './src/main.ts'
     },
 
     resolve: {
-        extensions: ['', '.ts', '.js']
+        extensions: ['.ts', '.js']
     },
 
     module: {
-        loaders: [
-            {
-                test: /\.ts$/,
-                loaders: ['awesome-typescript-loader', 'angular2-template-loader']
-            },
+        rules: [
             {
                 test: /\.html$/,
-                loader: 'html'
+                loader: 'html-loader'
             },
             {
-                test: /\.(png|jpe?g|gif|svg|woff|woff2|ttf|eot|ico)$/,
-                loader: 'file?name=assets/[name].[hash].[ext]'
+                test: /\.(png|jpe?g|gif|svg|ico)$/,
+                loader: 'file-loader?name=assets/images/[name].[hash].[ext]'
             },
             {
-                test:/\.css$/,
-                exclude: helpers.root('src', 'app'),
-                loader: ExtractTextPlugin.extract('style', 'css?sourceMap')
+                test: /\.(woff|woff2|ttf|eot)$/,
+                loader: 'file-loader?name=assets/fonts/[name].[hash].[ext]'
             },
             {
-                test:/\.css$/,
+                test: /\.css$/,
+                include: helpers.root('src', 'assets'),
+                loader: ExtractTextPlugin.extract({
+                    fallback: 'style-loader',
+                    use: 'css-loader?sourceMap'
+                })
+            },
+            {
+                test: /\.css$/,
                 include: helpers.root('src', 'app'),
-                loader: 'raw'
+                loaders: ['to-string-loader', 'resolve-url-loader', 'css-loader?sourceMap']
+            },
+            {
+                test: /\.scss$/,
+                include: helpers.root('src', 'assets'),
+                loader: ExtractTextPlugin.extract({
+                    fallback: 'style-loader',
+                    use: [
+                        {
+                            loader:'css-loader?sourceMap'
+                        },
+                        {
+                            loader:'sass-loader?sourceMap'
+                        }
+                    ]
+                })
+            },
+            {
+                test: /\.scss$/,
+                include: helpers.root('src', 'app'),
+                loaders: ['to-string-loader', 'resolve-url-loader', 'css-loader?sourceMap', 'sass-loader?sourceMap']
             }
         ]
     },
 
     plugins: [
+        // Workaround for angular/angular#11580
+        new webpack.ContextReplacementPlugin(
+            // The (\\|\/) piece accounts for path separators in *nix and Windows
+            /angular(\\|\/)core(\\|\/)(esm(\\|\/)src|src)(\\|\/)linker/,
+            helpers.root('./src'), // location of your src
+            {} // a map of your routes
+        ),
+
         new webpack.optimize.CommonsChunkPlugin({
-            name: ['app', 'vendor', 'polyfills']
+            name: ['js/app', 'js/vendor', 'js/polyfills']
         }),
 
         new HtmlWebpackPlugin({
